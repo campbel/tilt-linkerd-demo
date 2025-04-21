@@ -19,7 +19,6 @@ k8s_resource(
         'foo:serviceaccount',
         'foo-root-inbound:httproute',
         'foo:server',
-        'foo:serverauthorization',
     ],
     port_forwards=[
         '8000:80',  # HTTP port

@@ -25,15 +25,15 @@ k8s_resource(
         'baz:serviceaccount',
         'baz-root-inbound:httproute',
         'baz:server',
-        'baz:serverauthorization',
         'baz-toxic-config:configmap:default',
         "baz-bar-authn:meshtlsauthentication",
         "baz-foo-bar-inbound:httproute",
         "baz-foo-bar-policy:authorizationpolicy",
         "baz-root-outbound:httproute",
-    ],
-    links=[
-        link('http://baz.localhost:5050', 'baz.localhost'),
+        # gRPC resoources
+        # "baz-grpc:server",
+        # "baz-grpc:authorizationpolicy"
+        # "baz-grpc-policy:authorizationpolicy",
     ],
     port_forwards=[
         '9000:8000',

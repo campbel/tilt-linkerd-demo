@@ -7,14 +7,23 @@ dotenv()
 
 # Global settings
 config.define_bool("use_grpc", False, "Use gRPC for service communication")
+config.define_bool("use_linkerd", False, "Enable Linkerd service mesh features")
 cfg = config.parse()
 
-# Set USE_GRPC as a global environment variable
+# Set global environment variables
 os.environ['USE_GRPC'] = "true" if cfg.get("use_grpc") else "false"
+os.environ['USE_LINKERD'] = "true" if cfg.get("use_linkerd", False) else "false"
+
+# Print feature status
 if cfg.get("use_grpc"):
   print("🚀 gRPC communication ENABLED")
 else:
   print("🔄 Using HTTP REST communication")
+
+if cfg.get("use_linkerd", False):
+  print("🔗 Linkerd service mesh ENABLED")
+else:
+  print("🔗 Linkerd service mesh DISABLED")
 
 # Manage Contexts
 context = os.environ.get('TILT_K8S_CONTEXT', 'docker-desktop')

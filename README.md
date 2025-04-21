@@ -66,39 +66,54 @@ A demo of using Tilt to run an application with Linkerd on your local machine
 tilt up
 ```
 
-## Testing gRPC Communication
+## Configuration Options
 
-You can enable gRPC communication between services in one of two ways:
+### gRPC Communication
 
-### 1. Using the Tilt Command Line Flag
+You can enable gRPC communication between services:
 
-Start Tilt with the `--use_grpc` flag:
+#### Using the Tilt Command Line Flag
 
 ```sh
 tilt up -- --use_grpc
 ```
 
-This will automatically set `USE_GRPC=true` for all services.
+This sets `USE_GRPC=true` for all services.
 
-### 2. Using the Tilt Web UI
+#### Using the Tilt Web UI
 
-After starting Tilt normally:
+After starting Tilt, click the "Settings" icon (gear) in the top right of the Tilt web UI, then toggle the "use_grpc" setting.
 
-```sh
-tilt up
-```
-
-Click the "Settings" icon (gear) in the top right of the Tilt web UI, then toggle the "use_grpc" setting.
-
-### 3. Manually Editing Deployments
-
-If you want to modify only specific services, you can edit the deployments directly:
+#### Manually Editing Deployments
 
 ```sh
-# Edit the Kubernetes deployment for a specific service:
+# Edit specific deployments:
 kubectl edit deployment foo
-kubectl edit deployment bar
-kubectl edit deployment baz
 ```
 
 Find the environment variables section and change `USE_GRPC` to `true`.
+
+### Linkerd Service Mesh
+
+By default, Linkerd is disabled. You can enable it when needed:
+
+#### Using the Tilt Command Line Flag
+
+```sh
+# Enable Linkerd
+tilt up -- --use_linkerd
+
+# Enable both Linkerd and gRPC
+tilt up -- --use_linkerd --use_grpc
+```
+
+#### Using the Tilt Web UI
+
+After starting Tilt, click the "Settings" icon (gear) in the top right of the Tilt web UI, then toggle the "use_linkerd" setting.
+
+### All Configuration Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--use_grpc` | `false` | Enable gRPC communication between services |
+| `--use_linkerd` | `false` | Enable Linkerd service mesh features |

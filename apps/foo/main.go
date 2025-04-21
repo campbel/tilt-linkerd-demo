@@ -21,9 +21,45 @@ var (
 	barGRPCURL = getEnv("BAR_GRPC_URL", "bar:9090")
 	bazGRPCURL = getEnv("BAZ_GRPC_URL", "baz:9090")
 	useGRPC = getEnv("USE_GRPC", "false") == "true"
+	
+	// Reusable gRPC clients
+	barClient pb.BarClient
+	bazClient pb.BazClient
 )
 
+func initGRPCClients() error {
+	if !useGRPC {
+		return nil
+	}
+	
+	// Initialize bar client
+	barConn, err := grpc.Dial(barGRPCURL, 
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to bar: %w", err)
+	}
+	barClient = pb.NewBarClient(barConn)
+	
+	// Initialize baz client
+	bazConn, err := grpc.Dial(bazGRPCURL,
+		grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return fmt.Errorf("failed to connect to baz: %w", err)
+	}
+	bazClient = pb.NewBazClient(bazConn)
+	
+	log.Printf("gRPC clients initialized for bar and baz")
+	return nil
+}
+
 func main() {
+	// Initialize gRPC clients if needed
+	if useGRPC {
+		if err := initGRPCClients(); err != nil {
+			log.Fatalf("Failed to initialize gRPC clients: %v", err)
+		}
+	}
+	
 	// Start gRPC server
 	go startGRPCServer()
 	
@@ -91,20 +127,11 @@ func getBaz() Response {
 }
 
 func getBarGRPC() Response {
-	conn, err := grpc.Dial(barGRPCURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return Response{
-			URL:   barGRPCURL,
-			Error: err,
-		}
-	}
-	defer conn.Close()
-	
-	client := pb.NewBarClient(conn)
+	// Use the pre-initialized client
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	
-	resp, err := client.GetInfo(ctx, &pb.InfoRequest{
+	resp, err := barClient.GetInfo(ctx, &pb.InfoRequest{
 		Client: "foo",
 		Headers: map[string]string{
 			"User-Agent": "foo-grpc-client",
@@ -126,20 +153,11 @@ func getBarGRPC() Response {
 }
 
 func getBazGRPC() Response {
-	conn, err := grpc.Dial(bazGRPCURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return Response{
-			URL:   bazGRPCURL,
-			Error: err,
-		}
-	}
-	defer conn.Close()
-	
-	client := pb.NewBazClient(conn)
+	// Use the pre-initialized client
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	
-	resp, err := client.GetInfo(ctx, &pb.InfoRequest{
+	resp, err := bazClient.GetInfo(ctx, &pb.InfoRequest{
 		Client: "foo",
 		Headers: map[string]string{
 			"User-Agent": "foo-grpc-client",

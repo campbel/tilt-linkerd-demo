@@ -46,7 +46,8 @@ spec:
       labels:
         app: baz
       annotations:
-        config.linkerd.io/proxy-enable-native-sidecar: "true"
+        linkerd.io/inject: disabled
+        config.linkerd.io/proxy-enable-native-sidecar: "false"
     spec:
       serviceAccountName: baz
       containers:

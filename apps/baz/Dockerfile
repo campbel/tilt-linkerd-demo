@@ -10,7 +10,6 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN ls -la
 RUN CGO_ENABLED=0 go build -o /baz ./apps/baz
 
 WORKDIR /

@@ -39,7 +39,8 @@ spec:
       labels:
         app: foo
       annotations:
-        config.linkerd.io/proxy-enable-native-sidecar: "true"
+        linkerd.io/inject: disabled
+        config.linkerd.io/proxy-enable-native-sidecar: "false"
     spec:
       serviceAccountName: foo
       containers:

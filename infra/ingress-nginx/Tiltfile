@@ -12,6 +12,7 @@ helm_repo(
     labels=['ingress']
 )
 
+inject = 'enabled' if os.environ.get('USE_LINKERD', 'false').lower() == 'true' else 'disabled'
 
 # Install the ingress-nginx chart
 helm_resource(
@@ -26,6 +27,6 @@ helm_resource(
         '--version', '4.7.1',
         '--set', 'controller.allowSnippetAnnotations=true',
         '--set', 'controller.ingressClassResource.name=nginx',
-        '--set', "controller.podAnnotations.'linkerd\\.io/inject'=enabled"
+        '--set', "controller.podAnnotations.'linkerd\\.io/inject'={inject}".format(inject=inject)
     ]
 )

@@ -1,15 +1,26 @@
-# Server Authorization
-# https://linkerd.io/2-edge/reference/authorization-policy/#serverauthorization
+# Authorization Policy
+# https://linkerd.io/2-edge/reference/authorization-policy/
 ---
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: nginx-foo-authn
+  namespace: default
+spec:
+  identities:
+    - "ingress-nginx.ingress-nginx.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
 metadata:
   namespace: default
-  name: foo
+  name: nginx-foo-authn
 spec:
-  server:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
     name: foo
-  client:
-    meshTLS:
-      identities:
-        - "ingress-nginx.ingress-nginx.serviceaccount.identity.linkerd.cluster.local"
+  requiredAuthenticationRefs:
+    - name: nginx-foo-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io

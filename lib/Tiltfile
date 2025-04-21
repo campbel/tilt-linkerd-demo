@@ -2,23 +2,31 @@
 def files(glob_pattern):
     return str(local('ls {}'.format(glob_pattern))).strip().split("\n")
 
-# add_env_vars applies environment variables from the root Tiltfile to k8s yaml
+# add_env_vars applies environment variables and annotations from the root Tiltfile to k8s yaml
 def add_env_vars(yaml_file):
-    # Check if USE_GRPC is set in environment
+    # Check environment variables
     use_grpc = os.environ.get('USE_GRPC', 'false').lower() == 'true'
+    use_linkerd = os.environ.get('USE_LINKERD', 'false').lower() == 'true'
     
-    # If not using gRPC, just return the file as is
-    if not use_grpc:
+    # If no modifications needed, just return the file as is
+    if not use_grpc and not use_linkerd:
         return yaml_file
 
-    # Let's take a simpler approach - read the file and do a string replacement
+    # Read the file and do string replacements
     yaml_contents = read_file(yaml_file)
-    
-    # Look for the USE_GRPC env var and replace "false" with "true"
-    # Account for different indentation in different files
     modified_yaml = str(yaml_contents)
-    modified_yaml = modified_yaml.replace('name: USE_GRPC\n              value: "false"', 'name: USE_GRPC\n              value: "true"')
-    modified_yaml = modified_yaml.replace('name: USE_GRPC\n            value: "false"', 'name: USE_GRPC\n            value: "true"')
+    
+    # Handle gRPC settings if needed
+    if use_grpc:
+        # Look for the USE_GRPC env var and replace "false" with "true"
+        # Account for different indentation in different files
+        modified_yaml = modified_yaml.replace('name: USE_GRPC\n              value: "false"', 'name: USE_GRPC\n              value: "true"')
+        modified_yaml = modified_yaml.replace('name: USE_GRPC\n            value: "false"', 'name: USE_GRPC\n            value: "true"')
+    
+    # Handle Linkerd annotations if needed
+    if use_linkerd:
+        # Add the Linkerd annotation to all deployments
+        modified_yaml = modified_yaml.replace('linkerd.io/inject: disabled', 'linkerd.io/inject: enabled')
     
     # Return the modified YAML
     return blob(modified_yaml)

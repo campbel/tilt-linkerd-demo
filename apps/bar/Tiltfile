@@ -17,7 +17,6 @@ k8s_resource(
         'bar:serviceaccount',
         'bar-root-inbound:httproute',
         'bar:server',
-        'bar:serverauthorization',
     ],
     labels=['app'],
     resource_deps=['linkerd-control-plane']

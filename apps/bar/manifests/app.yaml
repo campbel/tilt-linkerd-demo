@@ -28,6 +28,7 @@ metadata:
   name: bar
   labels:
     app: bar
+  annotations:
 spec:
   selector:
     matchLabels:
@@ -37,6 +38,7 @@ spec:
       labels:
         app: bar
       annotations:
+        linkerd.io/inject: disabled
         config.linkerd.io/proxy-enable-native-sidecar: "true"
     spec:
       serviceAccountName: bar
