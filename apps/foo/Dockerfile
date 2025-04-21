@@ -1,8 +1,16 @@
-FROM golang:1.22-alpine
+FROM golang:1.23-alpine
 
-COPY . /app
 WORKDIR /app
 
-RUN go build -o foo main.go
+# Copy go.mod and go.sum files first for better layer caching
+COPY go.mod go.sum ./
+RUN go mod download
 
-CMD ["./foo"]
+# Copy the entire project
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 go build -o /foo ./apps/foo
+
+WORKDIR /
+CMD ["/foo"]

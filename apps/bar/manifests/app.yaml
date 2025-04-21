@@ -17,6 +17,10 @@ spec:
   ports:
     - port: 80
       targetPort: 8080
+      name: http
+    - port: 9090
+      targetPort: 9090
+      name: grpc
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -32,6 +36,8 @@ spec:
     metadata:
       labels:
         app: bar
+      annotations:
+        config.linkerd.io/proxy-enable-native-sidecar: "true"
     spec:
       serviceAccountName: bar
       containers:
@@ -39,3 +45,11 @@ spec:
           image: bar:latest
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: grpc
+          env:
+            - name: BAZ_URL
+              value: "baz:80"
+            - name: USE_GRPC
+              value: "false"

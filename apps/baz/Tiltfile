@@ -4,13 +4,13 @@ load('../../lib/Tiltfile', 'files')
 docker_build(
     'toxic',
     context='../../toxic',
-    dockerfile='Dockerfile',
+    dockerfile='../../toxic/Dockerfile',
 )
 
 docker_build(
     'baz',
-    context='.',
-    dockerfile='Dockerfile',
+    context='../../',
+    dockerfile='./Dockerfile',
 )
 
 # Load app manifests

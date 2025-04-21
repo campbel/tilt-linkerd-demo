@@ -1,5 +1,5 @@
 docker_build(
     'toxic',
-    context='.',
-    dockerfile='Dockerfile',
+    context='..',
+    dockerfile='./Dockerfile',
 )

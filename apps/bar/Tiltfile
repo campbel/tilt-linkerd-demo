@@ -2,8 +2,8 @@ load('../../lib/Tiltfile', 'files')
 
 docker_build(
     'bar',
-    context='.',
-    dockerfile='Dockerfile',
+    context='../../',
+    dockerfile='./Dockerfile',
 )
 
 k8s_yaml(files('manifests/*.yaml'))

@@ -52,8 +52,31 @@ A demo of using Tilt to run an application with Linkerd on your local machine
 
    _Full instructions are available [here](https://linkerd.io/2.16/getting-started/#step-1-install-the-cli)_
 
+5. Install Protocol Buffer tools (for gRPC)
+
+   ```sh
+   brew install protobuf
+   brew install bufbuild/buf/buf
+   brew install protoc-gen-go protoc-gen-go-grpc
+   ```
+
 ## Run the demo
 
 ```sh
 tilt up
 ```
+
+## Testing gRPC Communication
+
+To test the gRPC communication between services, set the `USE_GRPC` environment variable to `true`:
+
+```sh
+# Edit the Kubernetes deployment for each service:
+kubectl edit deployment foo
+kubectl edit deployment bar
+kubectl edit deployment baz
+```
+
+Find the environment variables section and change `USE_GRPC` to `true`.
+
+Or you can use the Tilt UI to modify the environment variables for each service.
