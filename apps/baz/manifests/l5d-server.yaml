@@ -11,16 +11,16 @@ spec:
   port: http-toxic # target the toxic server (defined in the service)
   proxyProtocol: HTTP/2
   accessPolicy: deny # deny all traffic by default
-# ---
-# apiVersion: policy.linkerd.io/v1beta1
-# kind: Server
-# metadata:
-#   name: baz-grpc
-#   namespace: default
-# spec:
-#   podSelector:
-#     matchLabels:
-#       app: baz
-#   port: grpc
-#   proxyProtocol: gRPC
-#   accessPolicy: audit # deny all traffic by default
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: baz-grpc
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: baz
+  port: grpc
+  proxyProtocol: gRPC
+  accessPolicy: audit # deny all traffic by default

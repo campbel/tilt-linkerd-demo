@@ -20,8 +20,8 @@ var (
 	bazHTTPURL = getEnv("BAZ_HTTP_URL", "baz:80")
 	barGRPCURL = getEnv("BAR_GRPC_URL", "bar:9090")
 	bazGRPCURL = getEnv("BAZ_GRPC_URL", "baz:9090")
-	useGRPC = getEnv("USE_GRPC", "false") == "true"
-	
+	useGRPC    = getEnv("USE_GRPC", "false") == "true"
+
 	// Reusable gRPC clients
 	barClient pb.BarClient
 	bazClient pb.BazClient
@@ -31,23 +31,23 @@ func initGRPCClients() error {
 	if !useGRPC {
 		return nil
 	}
-	
+
 	// Initialize bar client
-	barConn, err := grpc.Dial(barGRPCURL, 
+	barConn, err := grpc.NewClient(barGRPCURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("failed to connect to bar: %w", err)
 	}
 	barClient = pb.NewBarClient(barConn)
-	
+
 	// Initialize baz client
-	bazConn, err := grpc.Dial(bazGRPCURL,
+	bazConn, err := grpc.NewClient(bazGRPCURL,
 		grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return fmt.Errorf("failed to connect to baz: %w", err)
 	}
 	bazClient = pb.NewBazClient(bazConn)
-	
+
 	log.Printf("gRPC clients initialized for bar and baz")
 	return nil
 }
@@ -59,17 +59,17 @@ func main() {
 			log.Fatalf("Failed to initialize gRPC clients: %v", err)
 		}
 	}
-	
+
 	// Start gRPC server
 	go startGRPCServer()
-	
+
 	// Start HTTP server
 	http.ListenAndServe(":8080", http.HandlerFunc(handler))
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	barChan, bazChan := make(chan Response), make(chan Response)
-	
+
 	go func() {
 		if useGRPC {
 			barChan <- getBarGRPC()
@@ -77,7 +77,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 			barChan <- getBar()
 		}
 	}()
-	
+
 	go func() {
 		if useGRPC {
 			bazChan <- getBazGRPC()
@@ -130,21 +130,21 @@ func getBarGRPC() Response {
 	// Use the pre-initialized client
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	
+
 	resp, err := barClient.GetInfo(ctx, &pb.InfoRequest{
 		Client: "foo",
 		Headers: map[string]string{
 			"User-Agent": "foo-grpc-client",
 		},
 	})
-	
+
 	if err != nil {
 		return Response{
 			URL:   barGRPCURL,
 			Error: err,
 		}
 	}
-	
+
 	return Response{
 		Status: int(resp.Status),
 		URL:    barGRPCURL,
@@ -156,21 +156,21 @@ func getBazGRPC() Response {
 	// Use the pre-initialized client
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
-	
+
 	resp, err := bazClient.GetInfo(ctx, &pb.InfoRequest{
 		Client: "foo",
 		Headers: map[string]string{
 			"User-Agent": "foo-grpc-client",
 		},
 	})
-	
+
 	if err != nil {
 		return Response{
 			URL:   bazGRPCURL,
 			Error: err,
 		}
 	}
-	
+
 	return Response{
 		Status: int(resp.Status),
 		URL:    bazGRPCURL,
@@ -209,7 +209,7 @@ type fooServer struct {
 
 func (s *fooServer) GetInfo(ctx context.Context, req *pb.InfoRequest) (*pb.InfoResponse, error) {
 	hostname, _ := os.Hostname()
-	
+
 	return &pb.InfoResponse{
 		Message:  "Hello from foo gRPC server!",
 		Hostname: hostname,
@@ -223,10 +223,10 @@ func startGRPCServer() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	
+
 	s := grpc.NewServer()
 	pb.RegisterFooServer(s, &fooServer{})
-	
+
 	log.Println("Starting gRPC server on :9090")
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)

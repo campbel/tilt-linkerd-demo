@@ -1,0 +1,18 @@
+# HTTP Inbound routes
+# https://linkerd.io/2-edge/features/httproute/#inbound-and-outbound-httproutes
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GRPCRoute
+metadata:
+  name: bar-outbound
+  namespace: default
+spec:
+  parentRefs:
+    - name: bar
+      kind: Service
+      group: core
+      port: 9090
+  rules:
+    - backendRefs:
+        - name: bar
+          port: 9090
