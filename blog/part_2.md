@@ -1,10 +1,16 @@
-# Building a Linkerd Demo: Adding gRPC Support (Part 2)
+# Developing with Tilt, Linkerd, and Nginx: Part 2 its time for gRPC
 
 In [Part 1](part_1.md) of this series, we set up a simple microservices demo with Linkerd on a local Kubernetes cluster using Tilt. We created three services (foo, bar, and baz) that communicate via HTTP REST. Now, we're going to extend our demo to support gRPC communication between services and explore Linkerd's gRPC-specific features.
 
+## The gRPC Advantage in Microservices
+
+gRPC, a graduated CNCF project like Linkerd, offers a powerful communication foundation for modern microservices architectures. By combining HTTP/2's efficiency with Protocol Buffers' strong typing and code generation, gRPC delivers superior performance, type safety, and cross-language compatibility compared to traditional REST APIs. These benefits make it particularly valuable in complex, polyglot microservices environments where frequent inter-service communication occurs.
+
+However, running gRPC on Kubernetes introduces challenges—particularly around load balancing, observability, and security. This is where Linkerd shines, providing transparent solutions to these challenges without requiring application changes. The combination of gRPC and Linkerd creates a powerful synergy: gRPC's performance and developer experience with Linkerd's operational capabilities, allowing teams to focus on building features rather than solving infrastructure problems.
+
 ## Architecture Overview
 
-Let's review our demo application architecture:
+Before we get started, let's do a quick review our demo application architecture:
 
 1. **foo** - An entry point service that makes parallel requests to bar and baz
 2. **bar** - A middle-tier service that processes requests and calls baz
