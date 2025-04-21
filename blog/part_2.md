@@ -2,7 +2,7 @@
 
 In [Part 1](part_1.md) of this series, we set up a simple microservices demo with Linkerd on a local Kubernetes cluster using Tilt. We created three services (foo, bar, and baz) that communicate via HTTP REST. Now, we're going to extend our demo to support gRPC communication between services and explore Linkerd's gRPC-specific features.
 
-## What We've Built So Far
+## Architecture Overview
 
 Let's review our demo application architecture:
 
@@ -34,7 +34,7 @@ _Note: when running locally there is also a `synthetic` service that is constant
 
 ## The gRPC Implementation
 
-Since the initial blog post (link?) we've now enhanced our application to support both HTTP REST and gRPC communication. Key components of our implementation include:
+Since the initial blog post, we've enhanced our application to support both HTTP REST and gRPC communication. Key components of our implementation include:
 
 ### 1. Protocol Buffer Definitions
 
@@ -103,7 +103,7 @@ These configuration flags allow us to test our application in different modes, w
 
 ## Leveraging Linkerd with gRPC
 
-A simple demonstration of the power of linkerd is to test the behavior when running gRPC without Linkerd `tilt up -- --use_grpc`. When you run the application you'll notice that the `foo` service will only interact with a single instance of the `baz` service. This is because by default gRPC requests will not be load balanced across services. See [gRPC Load Balancing on Kubernetes without Tears](https://linkerd.io/2018/11/14/grpc-load-balancing-on-kubernetes-without-tears/) for a deep dive on why this is the case. Suffice to say we need to enable Linkerd so that we can effectively utilize gRPC without losing our load balancing features. So re-run the app with `--use_linkerd` as well.
+A compelling demonstration of Linkerd's power is to observe the behavior when running gRPC without Linkerd (`tilt up -- --use_grpc`). You'll notice that the `foo` service only interacts with a single instance of the `baz` service. This occurs because gRPC requests don't load balance across services by default. For a detailed explanation of this behavior, see [gRPC Load Balancing on Kubernetes without Tears](https://linkerd.io/2018/11/14/grpc-load-balancing-on-kubernetes-without-tears/). To effectively utilize gRPC without sacrificing load balancing, we need to enable Linkerd by running the app with the additional `--use_linkerd` flag:
 
 ```sh
 tilt up -- --use_grpc --use_linkerd
@@ -111,17 +111,17 @@ tilt up -- --use_grpc --use_linkerd
 
 ### A Virtual Tour
 
-With our application running with both grpc and linkerd enabled we can start to explore some of the benefits of Linkerd.
+With our application running with both gRPC and Linkerd enabled, we can explore Linkerd's benefits.
 
-From the graphic below we can see two things. First, we're still getting proper request and TCP metrics for our application without the need to re-implement monitoring. This is managed by Linkerd automatically. Second, we can verify that we're now getting proper load balancing across all of our baz pods. Without Linkerd in the picture requests would have been pinned to a single instance which is not ideal, especially when working with low numbers of pods where the law of averages doesn't kick in.
+The graphic below illustrates two key advantages. First, Linkerd automatically provides request and TCP metrics for our application without requiring any monitoring implementation on our part. Second, we can confirm proper load balancing across all baz pods. Without Linkerd, requests would be pinned to a single instance—a significant drawback when working with a small number of pods where statistical load distribution is less effective.
 
-![](grpc_loadbalancing.png)
+![Linkerd dashboard showing load balancing across baz pods](grpc_loadbalancing.png)
 
-From the next graphic we can also see live calls coming to our service. This is particularly useful when dealing with gRPC as we may have obfuscated our visibility into service behavior during our transition to the new protocol.
+The next graphic shows live calls to our service. This visibility is particularly valuable because we can clearly see that the calls have transitioned to the gRPC endpoints `/demo.Baz/GetInfo`. Since our application supports dual protocols, this visual confirmation helps verify that we're properly configured in gRPC mode.
 
-![](grpc_livecalls.png)
+![Linkerd dashboard showing live gRPC calls to the baz service](grpc_livecalls.png)
 
-Don't forget, while the visuals of the dashboard are nice, the Linkerd CLI provides access to the same data.
+While the dashboard provides intuitive visualizations, the Linkerd CLI offers the same data in a terminal-friendly format for quick diagnostics:
 
 ```bash
 $ linkerd viz top deployment/baz
@@ -134,9 +134,9 @@ foo-64798767b7-x8xvf  baz-659dbf6895-9twg9  POST        /demo.Baz/GetInfo    104
 bar-577c4bf849-cpdxl  baz-659dbf6895-v7gdm  POST        /demo.Baz/GetInfo     958    75µs     8ms   203µs       100.00%
 ```
 
-### gRPC Authorization
+### Implementing gRPC Authorization
 
-Next let's implement an authorization policy for our new gRPC routes on the `baz` service. The authorization policy will give us fine grained controls for which services have permissions to access our service. But first we need to implement a new server and route. The server is going to represent the new gRPC endpoint that we've opened on the baz service. Like the HTTP route, we'll go with a default deny policy so we can verify that our services have proper authrization.
+Let's now implement an authorization policy for our new gRPC routes on the `baz` service. This policy provides fine-grained control over which services can access our endpoints. First, we need to create a new server and route definition. The server will represent the gRPC endpoint we've opened on the baz service. As with our HTTP route, we'll implement a default deny policy to ensure our services require explicit authorization.
 
 ```yaml
 ---
@@ -149,28 +149,46 @@ spec:
   podSelector:
     matchLabels:
       app: baz
-  port: grpc # target the toxic server (defined in the service)
+  port: grpc # grpc port defined from our service
   proxyProtocol: gRPC
   accessPolicy: deny # deny all traffic by default
 ```
 
-Once we have our server in place, we will follow the pattern we used in our HTTP implementation and give the `foo` server full access to our new gRPC server.
+After applying this configuration, you'll immediately notice that communication between our components breaks:
+
+```bash
+rpc error: code = PermissionDenied desc = client 192.168.194.77:57364: server: 192.168.194.70:4143: unauthorized request on route
+```
+
+This error occurs due to two factors: our default `deny` accessPolicy and the lack of proper gRPC traffic labeling for Linkerd to identify and authorize requests.
+
+To resolve this issue, we need to authorize our services to connect to the new server. We'll follow the same pattern we used for HTTP authorization: the `foo` service will receive server-level authorization, while the `bar` service will get route-level authorization. Let's start with implementing authorization for `foo`.
+
+#### Foo
+
+To enable server-level authorization for `foo > baz` communication, we first need to identify the gRPC routes on the baz service. This requires creating both inbound and outbound route definitions. For a detailed explanation of the differences between these route types, see the [official documentation](https://linkerd.io/2.17/reference/grpcroute/).
+
+**Outbound**
 
 ```yaml
 ---
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GRPCRoute
 metadata:
+  name: baz-grpc-outbound
   namespace: default
-  name: baz-grpc
 spec:
-  server:
-    name: baz-grpc
-  client:
-    meshTLS:
-      identities:
-        - "foo.default.serviceaccount.identity.linkerd.cluster.local"
+  parentRefs:
+    - name: baz-grpc
+      kind: Server
+      group: policy.linkerd.io
+  rules:
+    - backendRefs:
+        - name: baz
+          port: 9090
 ```
+
+**Inbound**
 
 ```yaml
 ---
@@ -185,8 +203,83 @@ spec:
       kind: Server
       group: policy.linkerd.io
   rules:
-    - matches:
-        - path:
-            type: Exact
-            value: "/demo.Baz/GetInfo"
+    - backendRefs:
+        - name: baz
+          port: 9090
 ```
+
+Next we can authorize the foo service to access our baz gRPC server.
+
+```yaml
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: foo-baz-authn
+  namespace: default
+spec:
+  identities:
+    - "foo.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: baz-grpc-authn
+  namespace: default
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: baz-grpc
+  requiredAuthenticationRefs:
+    - name: foo-baz-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
+```
+
+_Note: the MeshTLSAuthentication can be shared between gRPC and HTTP routes_
+
+With these definitions in place, we've successfully established an authorized connection from `foo > baz`.
+
+#### Bar
+
+Since we've already configured the routes for our service, implementing route-level authorization for `bar` is straightforward.
+
+```yaml
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: baz-bar-authn
+  namespace: default
+spec:
+  identities:
+    - "bar.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: baz-grpc-route-authn
+  namespace: default
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: GRPCRoute
+    name: baz-grpc-inbound
+  requiredAuthenticationRefs:
+    - name: baz-bar-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
+```
+
+And that's it! We've efficiently re-used our inbound route configuration to authorize the bar service to access our baz endpoints.
+
+With both authorization policies in place, our services can now communicate securely via gRPC:
+
+![Successful gRPC communication with authorization policies](grpc_success.png)
+
+## Conclusions
+
+In this tutorial, we've enhanced our demo application with gRPC support while leveraging Linkerd's powerful capabilities to simplify the integration process. We've seen how Linkerd solves critical challenges with gRPC in Kubernetes, particularly around load balancing and monitoring. By implementing Linkerd's authorization policies, we've also secured our services against unauthorized connections, demonstrating how service mesh technology can both improve functionality and strengthen security in modern microservice architectures.
+
+The combination of gRPC and Linkerd provides a solid foundation for building high-performance, secure, and observable microservices. This approach allows teams to benefit from gRPC's efficiency while addressing its operational challenges through Linkerd's service mesh capabilities.

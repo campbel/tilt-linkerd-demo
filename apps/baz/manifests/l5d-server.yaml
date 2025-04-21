@@ -23,4 +23,4 @@ spec:
       app: baz
   port: grpc
   proxyProtocol: gRPC
-  accessPolicy: audit # deny all traffic by default
+  accessPolicy: deny # deny all traffic by default
