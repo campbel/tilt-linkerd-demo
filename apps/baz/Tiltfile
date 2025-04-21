@@ -5,12 +5,29 @@ docker_build(
     'toxic',
     context='../../toxic',
     dockerfile='../../toxic/Dockerfile',
+    ignore=[
+        'blog',
+        'infra',
+        'lib',
+        'synthetic',
+        'apps/foo',
+        'apps/bar',
+        'apps/baz/manifests'
+    ],
 )
 
 docker_build(
     'baz',
     context='../../',
     dockerfile='./Dockerfile',
+    ignore=[
+        'blog',
+        'infra',
+        'lib',
+        'apps/foo',
+        'apps/bar',
+        'apps/baz/manifests'
+    ],
 )
 
 # Load and modify the YAML

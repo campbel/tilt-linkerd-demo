@@ -4,6 +4,15 @@ docker_build(
     'bar',
     context='../../',
     dockerfile='./Dockerfile',
+    ignore=[
+        'blog',
+        'infra',
+        'lib',
+        'synthetic',
+        'apps/foo',
+        'apps/baz',
+        'apps/bar/manifests'
+    ],
 )
 
 # Load and modify the YAML
