@@ -68,15 +68,37 @@ tilt up
 
 ## Testing gRPC Communication
 
-To test the gRPC communication between services, set the `USE_GRPC` environment variable to `true`:
+You can enable gRPC communication between services in one of two ways:
+
+### 1. Using the Tilt Command Line Flag
+
+Start Tilt with the `--use_grpc` flag:
 
 ```sh
-# Edit the Kubernetes deployment for each service:
+tilt up -- --use_grpc
+```
+
+This will automatically set `USE_GRPC=true` for all services.
+
+### 2. Using the Tilt Web UI
+
+After starting Tilt normally:
+
+```sh
+tilt up
+```
+
+Click the "Settings" icon (gear) in the top right of the Tilt web UI, then toggle the "use_grpc" setting.
+
+### 3. Manually Editing Deployments
+
+If you want to modify only specific services, you can edit the deployments directly:
+
+```sh
+# Edit the Kubernetes deployment for a specific service:
 kubectl edit deployment foo
 kubectl edit deployment bar
 kubectl edit deployment baz
 ```
 
 Find the environment variables section and change `USE_GRPC` to `true`.
-
-Or you can use the Tilt UI to modify the environment variables for each service.

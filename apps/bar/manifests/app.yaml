@@ -49,7 +49,9 @@ spec:
             - containerPort: 9090
               name: grpc
           env:
-            - name: BAZ_URL
+            - name: BAZ_HTTP_URL
               value: "baz:80"
+            - name: BAZ_GRPC_URL
+              value: "baz:9090"
             - name: USE_GRPC
               value: "false"

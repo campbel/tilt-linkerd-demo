@@ -5,6 +5,17 @@ min_tilt_version('0.33.1')
 load('ext://dotenv', 'dotenv')
 dotenv()
 
+# Global settings
+config.define_bool("use_grpc", False, "Use gRPC for service communication")
+cfg = config.parse()
+
+# Set USE_GRPC as a global environment variable
+os.environ['USE_GRPC'] = "true" if cfg.get("use_grpc") else "false"
+if cfg.get("use_grpc"):
+  print("🚀 gRPC communication ENABLED")
+else:
+  print("🔄 Using HTTP REST communication")
+
 # Manage Contexts
 context = os.environ.get('TILT_K8S_CONTEXT', 'docker-desktop')
 allow_k8s_contexts(context)

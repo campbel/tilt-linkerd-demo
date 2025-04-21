@@ -1,4 +1,4 @@
-load('../../lib/Tiltfile', 'files')
+load('../../lib/Tiltfile', 'files', 'add_env_vars')
 
 docker_build(
     'bar',
@@ -6,7 +6,10 @@ docker_build(
     dockerfile='./Dockerfile',
 )
 
-k8s_yaml(files('manifests/*.yaml'))
+# Load and modify the YAML
+yaml_files = files('manifests/*.yaml')
+for yaml_file in yaml_files:
+    k8s_yaml(add_env_vars(yaml_file))
 
 k8s_resource(
     'bar',

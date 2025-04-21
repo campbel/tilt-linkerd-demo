@@ -16,8 +16,10 @@ import (
 )
 
 var (
-	barURL = getEnv("BAR_URL", "bar:8080")
-	bazURL = getEnv("BAZ_URL", "baz:8080")
+	barHTTPURL = getEnv("BAR_HTTP_URL", "bar:80")
+	bazHTTPURL = getEnv("BAZ_HTTP_URL", "baz:80")
+	barGRPCURL = getEnv("BAR_GRPC_URL", "bar:9090")
+	bazGRPCURL = getEnv("BAZ_GRPC_URL", "baz:9090")
 	useGRPC = getEnv("USE_GRPC", "false") == "true"
 )
 
@@ -81,18 +83,18 @@ func getResource(url string) Response {
 }
 
 func getBar() Response {
-	return getResource(barURL)
+	return getResource(barHTTPURL)
 }
 
 func getBaz() Response {
-	return getResource(bazURL)
+	return getResource(bazHTTPURL)
 }
 
 func getBarGRPC() Response {
-	conn, err := grpc.Dial(barURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(barGRPCURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return Response{
-			URL:   barURL,
+			URL:   barGRPCURL,
 			Error: err,
 		}
 	}
@@ -111,23 +113,23 @@ func getBarGRPC() Response {
 	
 	if err != nil {
 		return Response{
-			URL:   barURL,
+			URL:   barGRPCURL,
 			Error: err,
 		}
 	}
 	
 	return Response{
 		Status: int(resp.Status),
-		URL:    barURL,
+		URL:    barGRPCURL,
 		Body:   resp.Message,
 	}
 }
 
 func getBazGRPC() Response {
-	conn, err := grpc.Dial(bazURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(bazGRPCURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return Response{
-			URL:   bazURL,
+			URL:   bazGRPCURL,
 			Error: err,
 		}
 	}
@@ -146,14 +148,14 @@ func getBazGRPC() Response {
 	
 	if err != nil {
 		return Response{
-			URL:   bazURL,
+			URL:   bazGRPCURL,
 			Error: err,
 		}
 	}
 	
 	return Response{
 		Status: int(resp.Status),
-		URL:    bazURL,
+		URL:    bazGRPCURL,
 		Body:   resp.Message,
 	}
 }

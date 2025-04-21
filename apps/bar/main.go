@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	bazURL = getEnv("BAZ_URL", "baz:8080")
+	bazHTTPURL = getEnv("BAZ_HTTP_URL", "baz:80")
+	bazGRPCURL = getEnv("BAZ_GRPC_URL", "baz:9090")
 	useGRPC = getEnv("USE_GRPC", "false") == "true"
 )
 
@@ -63,7 +64,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func callBazHTTP() (string, error) {
-	resp, err := http.Get("http://" + bazURL + "/foo/bar")
+	resp, err := http.Get("http://" + bazHTTPURL + "/foo/bar")
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +79,7 @@ func callBazHTTP() (string, error) {
 }
 
 func callBazGRPC() (string, error) {
-	conn, err := grpc.Dial(bazURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(bazGRPCURL, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return "", err
 	}
