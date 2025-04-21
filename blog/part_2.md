@@ -1,6 +1,6 @@
-# Developing with Tilt, Linkerd, and Nginx: Part 2 its time for gRPC
+# Developing with Tilt, Linkerd, and Nginx: Part 2 - Adding gRPC Support
 
-In [Part 1](part_1.md) of this series, we set up a simple microservices demo with Linkerd on a local Kubernetes cluster using Tilt. We created three services (foo, bar, and baz) that communicate via HTTP REST. Now, we're going to extend our demo to support gRPC communication between services and explore Linkerd's gRPC-specific features.
+In [Part 1](part_1.md) of this series, we built a simple microservices demo with Linkerd on a local Kubernetes cluster using Tilt. Our demo consists of three services (foo, bar, and baz) that communicate via HTTP REST. In this second part, we'll extend our demo to support gRPC communication and explore some of Linkerd's helpful features for managing gRPC services.
 
 ## The gRPC Advantage in Microservices
 
@@ -10,7 +10,7 @@ However, running gRPC on Kubernetes introduces challenges—particularly around 
 
 ## Architecture Overview
 
-Before we get started, let's do a quick review our demo application architecture:
+Before diving into the gRPC implementation, let's review our application's architecture:
 
 1. **foo** - An entry point service that makes parallel requests to bar and baz
 2. **bar** - A middle-tier service that processes requests and calls baz
@@ -36,7 +36,7 @@ Our architecture currently looks like this:
                                 └─────────┘
 ```
 
-_Note: when running locally there is also a `synthetic` service that is constantly driving high traffic through the `foo` service to simulate application load._
+_Note: When running locally, our setup includes a `synthetic` service that generates continuous traffic to the `foo` service, simulating real-world application load._
 
 ## The gRPC Implementation
 
@@ -109,7 +109,11 @@ These configuration flags allow us to test our application in different modes, w
 
 ## Leveraging Linkerd with gRPC
 
-A compelling demonstration of Linkerd's power is to observe the behavior when running gRPC without Linkerd (`tilt up -- --use_grpc`). You'll notice that the `foo` service only interacts with a single instance of the `baz` service. This occurs because gRPC requests don't load balance across services by default. For a detailed explanation of this behavior, see [gRPC Load Balancing on Kubernetes without Tears](https://linkerd.io/2018/11/14/grpc-load-balancing-on-kubernetes-without-tears/). To effectively utilize gRPC without sacrificing load balancing, we need to enable Linkerd by running the app with the additional `--use_linkerd` flag:
+One of the best ways to appreciate Linkerd's value is to observe what happens when running gRPC without it. Try running the application with just gRPC enabled (`tilt up -- --use_grpc`) and you'll notice something interesting: the `foo` service only communicates with a single instance of the `baz` service, even though multiple instances are available.
+
+This happens because gRPC connections persist and don't load balance across service instances by default. If you're curious about the technical details, check out this excellent article: [gRPC Load Balancing on Kubernetes without Tears](https://linkerd.io/2018/11/14/grpc-load-balancing-on-kubernetes-without-tears/).
+
+To solve this issue and get proper load balancing with gRPC, we simply need to enable Linkerd:
 
 ```sh
 tilt up -- --use_grpc --use_linkerd
@@ -117,13 +121,13 @@ tilt up -- --use_grpc --use_linkerd
 
 ### A Virtual Tour
 
-With our application running with both gRPC and Linkerd enabled, we can explore Linkerd's benefits.
+With both gRPC and Linkerd enabled, let's explore what we gain from this combination.
 
-The graphic below illustrates two key advantages. First, Linkerd automatically provides request and TCP metrics for our application without requiring any monitoring implementation on our part. Second, we can confirm proper load balancing across all baz pods. Without Linkerd, requests would be pinned to a single instance—a significant drawback when working with a small number of pods where statistical load distribution is less effective.
+The dashboard view below highlights two key advantages. First, Linkerd automatically provides detailed request and TCP metrics without requiring any custom instrumentation in our application code. Second, we can see proper load balancing across all baz pods in action. This load balancing is particularly important in development environments with only a few service instances, where having traffic pinned to a single instance (as would happen without Linkerd) can mask potential issues.
 
 ![Linkerd dashboard showing load balancing across baz pods](grpc_loadbalancing.png)
 
-The next graphic shows live calls to our service. This visibility is particularly valuable because we can clearly see that the calls have transitioned to the gRPC endpoints `/demo.Baz/GetInfo`. Since our application supports dual protocols, this visual confirmation helps verify that we're properly configured in gRPC mode.
+Below, we can see live calls flowing through our service mesh. This visibility is particularly valuable as we transition protocols - notice how Linkerd clearly shows calls to the gRPC endpoint `/demo.Baz/GetInfo`. With our application supporting both protocols, this visual confirmation helps us verify that we're correctly using gRPC for service communication.
 
 ![Linkerd dashboard showing live gRPC calls to the baz service](grpc_livecalls.png)
 
@@ -160,13 +164,13 @@ spec:
   accessPolicy: deny # deny all traffic by default
 ```
 
-After applying this configuration, you'll immediately notice that communication between our components breaks:
+After applying this configuration, communication between our components immediately breaks with the following error:
 
 ```bash
 rpc error: code = PermissionDenied desc = client 192.168.194.77:57364: server: 192.168.194.70:4143: unauthorized request on route
 ```
 
-This error occurs due to two factors: our default `deny` accessPolicy and the lack of proper gRPC traffic labeling for Linkerd to identify and authorize requests.
+This is expected and confirms our policy is working. The error occurs for two reasons: we've set our default `accessPolicy` to `deny`, and we haven't yet provided the proper traffic labeling for Linkerd to identify and authorize legitimate requests.
 
 To resolve this issue, we need to authorize our services to connect to the new server. We'll follow the same pattern we used for HTTP authorization: the `foo` service will receive server-level authorization, while the `bar` service will get route-level authorization. Let's start with implementing authorization for `foo`.
 
@@ -245,7 +249,7 @@ spec:
 
 _Note: the MeshTLSAuthentication can be shared between gRPC and HTTP routes_
 
-With these definitions in place, we've successfully established an authorized connection from `foo > baz`.
+With these definitions in place, we've established a secure, authorized connection from `foo` to `baz`. If you check your application now, you'll see that communication from `foo` is working again, while `bar` requests are still being blocked.
 
 #### Bar
 
@@ -278,14 +282,14 @@ spec:
       group: policy.linkerd.io
 ```
 
-And that's it! We've efficiently re-used our inbound route configuration to authorize the bar service to access our baz endpoints.
+That completes our authorization setup! We've efficiently reused our inbound route configuration to allow the `bar` service to access our `baz` endpoints without granting it unrestricted access to the server.
 
-With both authorization policies in place, our services can now communicate securely via gRPC:
+With both authorization policies in place, our services are now communicating securely via gRPC, with proper access controls:
 
 ![Successful gRPC communication with authorization policies](grpc_success.png)
 
 ## Conclusions
 
-In this tutorial, we've enhanced our demo application with gRPC support while leveraging Linkerd's powerful capabilities to simplify the integration process. We've seen how Linkerd solves critical challenges with gRPC in Kubernetes, particularly around load balancing and monitoring. By implementing Linkerd's authorization policies, we've also secured our services against unauthorized connections, demonstrating how service mesh technology can both improve functionality and strengthen security in modern microservice architectures.
+In this tutorial, we've successfully added gRPC support to our demo application while leveraging Linkerd to make the process smoother. We've seen first-hand how Linkerd addresses key challenges with gRPC in Kubernetes environments - particularly load balancing, which would otherwise require custom proxy configurations or client-side changes. We've also implemented fine-grained authorization policies to secure our services, showing how a service mesh can enhance both functionality and security without complex code changes.
 
-The combination of gRPC and Linkerd provides a solid foundation for building high-performance, secure, and observable microservices. This approach allows teams to benefit from gRPC's efficiency while addressing its operational challenges through Linkerd's service mesh capabilities.
+The combination of gRPC and Linkerd creates a solid foundation for modern microservices. You get all the benefits of gRPC's performance and type safety, while Linkerd handles the operational challenges that would otherwise require significant engineering effort. Whether you're building new applications or evolving existing ones, this pairing helps ensure your services are fast, secure, and observable throughout their lifecycle.
