@@ -25,6 +25,10 @@ spec:
       targetPort: http-toxic
       name: http
       protocol: TCP
+    - port: 9090
+      targetPort: grpc
+      name: grpc
+      protocol: TCP
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -41,6 +45,9 @@ spec:
     metadata:
       labels:
         app: baz
+      annotations:
+        linkerd.io/inject: disabled
+        config.linkerd.io/proxy-enable-native-sidecar: "false"
     spec:
       serviceAccountName: baz
       containers:
@@ -58,6 +65,8 @@ spec:
           ports:
             - containerPort: 8080
               name: http
+            - containerPort: 9090
+              name: grpc
       volumes:
         - name: baz-toxic-config
           configMap:

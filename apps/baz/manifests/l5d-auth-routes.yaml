@@ -2,6 +2,15 @@
 # https://linkerd.io/2-edge/tasks/configuring-per-route-policy/
 ---
 apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: baz-bar-authn
+  namespace: default
+spec:
+  identities:
+    - "bar.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
 kind: AuthorizationPolicy
 metadata:
   name: baz-foo-bar-policy
@@ -17,10 +26,16 @@ spec:
       group: policy.linkerd.io
 ---
 apiVersion: policy.linkerd.io/v1alpha1
-kind: MeshTLSAuthentication
+kind: AuthorizationPolicy
 metadata:
-  name: baz-bar-authn
+  name: baz-grpc-route-authn
   namespace: default
 spec:
-  identities:
-    - "bar.default.serviceaccount.identity.linkerd.cluster.local"
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: GRPCRoute
+    name: baz-grpc-inbound
+  requiredAuthenticationRefs:
+    - name: baz-bar-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io

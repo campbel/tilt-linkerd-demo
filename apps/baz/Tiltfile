@@ -1,20 +1,39 @@
 load('ext://configmap', 'configmap_create')
-load('../../lib/Tiltfile', 'files')
+load('../../lib/Tiltfile', 'files', 'add_env_vars')
 
 docker_build(
     'toxic',
     context='../../toxic',
-    dockerfile='Dockerfile',
+    dockerfile='../../toxic/Dockerfile',
+    ignore=[
+        'blog',
+        'infra',
+        'lib',
+        'synthetic',
+        'apps/foo',
+        'apps/bar',
+        'apps/baz/manifests'
+    ],
 )
 
 docker_build(
     'baz',
-    context='.',
-    dockerfile='Dockerfile',
+    context='../../',
+    dockerfile='./Dockerfile',
+    ignore=[
+        'blog',
+        'infra',
+        'lib',
+        'apps/foo',
+        'apps/bar',
+        'apps/baz/manifests'
+    ],
 )
 
-# Load app manifests
-k8s_yaml(files('manifests/*.yaml'))
+# Load and modify the YAML
+yaml_files = files('manifests/*.yaml')
+for yaml_file in yaml_files:
+    k8s_yaml(add_env_vars(yaml_file))
 configmap_create('baz-toxic-config', from_file=['toxic.json=./toxic.json'])
 k8s_resource(
     'baz',
@@ -23,19 +42,18 @@ k8s_resource(
         'baz:serviceaccount',
         'baz-root-inbound:httproute',
         'baz:server',
-        'baz:serverauthorization',
         'baz-toxic-config:configmap:default',
         "baz-bar-authn:meshtlsauthentication",
         "baz-foo-bar-inbound:httproute",
         "baz-foo-bar-policy:authorizationpolicy",
         "baz-root-outbound:httproute",
-    ],
-    links=[
-        link('http://baz.localhost:5050', 'baz.localhost'),
+        # gRPC resoources
+        # "baz-grpc:server",
+        # "baz-grpc:authorizationpolicy"
+        # "baz-grpc-policy:authorizationpolicy",
     ],
     port_forwards=[
         '9000:8000',
-        '9090:8080',
     ],
     resource_deps=['linkerd-control-plane'],
 )

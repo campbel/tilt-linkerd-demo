@@ -1,8 +1,16 @@
 FROM golang:1.22-alpine
 
-COPY . /app
 WORKDIR /app
 
-RUN go build -o toxic main.go
+# Copy go.mod and go.sum files first for better layer caching
+COPY go.mod go.sum ./
+RUN go mod download
 
-CMD ["./toxic"]
+# Copy the entire project
+COPY . .
+
+# Build the application
+RUN CGO_ENABLED=0 go build -o /toxic .
+
+WORKDIR /
+CMD ["/toxic"]

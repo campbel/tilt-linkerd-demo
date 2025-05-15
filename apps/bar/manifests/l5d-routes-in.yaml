@@ -17,3 +17,18 @@ spec:
         - path:
             type: PathPrefix
             value: "/"
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GRPCRoute
+metadata:
+  name: bar-grpc-inbound
+  namespace: default
+spec:
+  parentRefs:
+    - name: bar-grpc
+      kind: Server
+      group: policy.linkerd.io
+  rules:
+    - backendRefs:
+        - name: bar
+          port: 9090

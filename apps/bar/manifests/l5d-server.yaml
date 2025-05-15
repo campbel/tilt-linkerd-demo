@@ -11,3 +11,16 @@ spec:
   port: http
   proxyProtocol: HTTP/2
   accessPolicy: deny # deny all traffic by default
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: bar-grpc
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      app: bar
+  port: grpc
+  proxyProtocol: gRPC
+  accessPolicy: audit

@@ -52,8 +52,68 @@ A demo of using Tilt to run an application with Linkerd on your local machine
 
    _Full instructions are available [here](https://linkerd.io/2.16/getting-started/#step-1-install-the-cli)_
 
+5. Install Protocol Buffer tools (for gRPC)
+
+   ```sh
+   brew install protobuf
+   brew install bufbuild/buf/buf
+   brew install protoc-gen-go protoc-gen-go-grpc
+   ```
+
 ## Run the demo
 
 ```sh
 tilt up
 ```
+
+## Configuration Options
+
+### gRPC Communication
+
+You can enable gRPC communication between services:
+
+#### Using the Tilt Command Line Flag
+
+```sh
+tilt up -- --use_grpc
+```
+
+This sets `USE_GRPC=true` for all services.
+
+#### Using the Tilt Web UI
+
+After starting Tilt, click the "Settings" icon (gear) in the top right of the Tilt web UI, then toggle the "use_grpc" setting.
+
+#### Manually Editing Deployments
+
+```sh
+# Edit specific deployments:
+kubectl edit deployment foo
+```
+
+Find the environment variables section and change `USE_GRPC` to `true`.
+
+### Linkerd Service Mesh
+
+By default, Linkerd is disabled. You can enable it when needed:
+
+#### Using the Tilt Command Line Flag
+
+```sh
+# Enable Linkerd
+tilt up -- --use_linkerd
+
+# Enable both Linkerd and gRPC
+tilt up -- --use_linkerd --use_grpc
+```
+
+#### Using the Tilt Web UI
+
+After starting Tilt, click the "Settings" icon (gear) in the top right of the Tilt web UI, then toggle the "use_linkerd" setting.
+
+### All Configuration Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--use_grpc` | `false` | Enable gRPC communication between services |
+| `--use_linkerd` | `false` | Enable Linkerd service mesh features |

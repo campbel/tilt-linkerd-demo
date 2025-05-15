@@ -1,15 +1,41 @@
 # Server Authorization
 # https://linkerd.io/2-edge/reference/authorization-policy/#serverauthorization
 ---
-apiVersion: policy.linkerd.io/v1beta1
-kind: ServerAuthorization
+apiVersion: policy.linkerd.io/v1alpha1
+kind: MeshTLSAuthentication
+metadata:
+  name: foo-baz-authn
+  namespace: default
+spec:
+  identities:
+    - "foo.default.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
 metadata:
   namespace: default
   name: baz
 spec:
-  server:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
     name: baz
-  client:
-    meshTLS:
-      identities:
-        - "foo.default.serviceaccount.identity.linkerd.cluster.local"
+  requiredAuthenticationRefs:
+    - name: foo-baz-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
+---
+apiVersion: policy.linkerd.io/v1alpha1
+kind: AuthorizationPolicy
+metadata:
+  name: baz-grpc-authn
+  namespace: default
+spec:
+  targetRef:
+    group: policy.linkerd.io
+    kind: Server
+    name: baz-grpc
+  requiredAuthenticationRefs:
+    - name: foo-baz-authn
+      kind: MeshTLSAuthentication
+      group: policy.linkerd.io
