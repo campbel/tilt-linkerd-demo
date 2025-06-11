@@ -189,9 +189,10 @@ metadata:
   namespace: default
 spec:
   parentRefs:
-    - name: baz-grpc
-      kind: Server
-      group: policy.linkerd.io
+    - name: baz
+      kind: Service
+      group: core
+      port: 9090
   rules:
     - backendRefs:
         - name: baz
