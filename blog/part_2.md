@@ -176,7 +176,29 @@ To resolve this issue, we need to authorize our services to connect to the new s
 
 #### Foo
 
-To enable server-level authorization for `foo > baz` communication, we first need to identify the gRPC routes on the baz service. This requires creating an inbound route definition. We'll go ahead and create an outbound route as well, this will let us configure timeouts and retries. For a detailed explanation of the differences between these route types, see the [official documentation](https://linkerd.io/2-edge/reference/grpcroute/).
+To enable server-level authorization for `foo > baz` communication, we first need to identify the gRPC routes on the baz service. This requires creating an inbound route definition.
+
+**Inbound**
+
+```yaml
+---
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: GRPCRoute
+metadata:
+  name: baz-grpc-inbound
+  namespace: default
+spec:
+  parentRefs:
+    - name: baz-grpc
+      kind: Server
+      group: policy.linkerd.io
+  rules:
+    - backendRefs:
+        - name: baz
+          port: 9090
+```
+
+Now, let's create an outbound route to enable timeout and retry configurations. The outbound route will also supply us with more detailed Linkerd metrics, e.g. when using `linkerd viz stat-outbound`. For a comprehensive explanation of inbound versus outbound routes, refer to the [official documentation](https://linkerd.io/2-edge/reference/grpcroute/). An outbound route is not needed for authorization, but its a good practice to include.
 
 **Outbound**
 
@@ -199,26 +221,6 @@ spec:
       kind: Service
       group: core
       port: 9090
-  rules:
-    - backendRefs:
-        - name: baz
-          port: 9090
-```
-
-**Inbound**
-
-```yaml
----
-apiVersion: gateway.networking.k8s.io/v1alpha2
-kind: GRPCRoute
-metadata:
-  name: baz-grpc-inbound
-  namespace: default
-spec:
-  parentRefs:
-    - name: baz-grpc
-      kind: Server
-      group: policy.linkerd.io
   rules:
     - backendRefs:
         - name: baz
