@@ -176,9 +176,11 @@ To resolve this issue, we need to authorize our services to connect to the new s
 
 #### Foo
 
-To enable server-level authorization for `foo > baz` communication, we first need to identify the gRPC routes on the baz service. This requires creating both inbound and outbound route definitions. For a detailed explanation of the differences between these route types, see the [official documentation](https://linkerd.io/2.17/reference/grpcroute/).
+To enable server-level authorization for `foo > baz` communication, we first need to identify the gRPC routes on the baz service. This requires creating an inbound route definition. We'll go ahead and create an outbound route as well, this will let us configure timeouts and retries. For a detailed explanation of the differences between these route types, see the [official documentation](https://linkerd.io/2-edge/reference/grpcroute/).
 
 **Outbound**
+
+Used to specify our timeout and retry policy.
 
 ```yaml
 ---
@@ -187,6 +189,10 @@ kind: GRPCRoute
 metadata:
   name: baz-grpc-outbound
   namespace: default
+  annotations:
+    retry.linkerd.io/grpc: internal
+    retry.linkerd.io/limit: "2"
+    retry.linkerd.io/timeout: 400ms
 spec:
   parentRefs:
     - name: baz

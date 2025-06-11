@@ -27,6 +27,10 @@ kind: GRPCRoute
 metadata:
   name: baz-grpc-outbound
   namespace: default
+  annotations:
+    retry.linkerd.io/grpc: internal
+    retry.linkerd.io/limit: "2"
+    retry.linkerd.io/timeout: 400ms
 spec:
   parentRefs:
     - name: baz
